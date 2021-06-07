@@ -6,11 +6,11 @@ function App() {
   window.addEventListener('message', msg => {
     const { type, data } = msg.data
     if (type === 'performanceTree') {
-      console.log(data)
       setTreeData(data)
     }
   })
-  useEffect(() => {}, [treeData])
+  useEffect(() => {
+  }, [treeData])
   return (
     <div className="App">
       <Tree
@@ -18,7 +18,7 @@ function App() {
         titleRender={
           nodeData => {
             return (
-              <div onClick={() => { selectedElement(nodeData) }}>
+              <div onMouseOver={() => { selectedElement(nodeData) }} onMouseOut={cancelElement}>
                 {nodeData.title}{updateTime(nodeData)}
               </div>
             )
@@ -35,13 +35,13 @@ function updateTime(nodeData) {
   if (nodeData.renderTime) {
     str += Math.round(nodeData.renderTime)
   } else {
-    str += '暂不支持'
+    str += '该元素下非元素外不存在文本'
   }
   return str
 }
 
 function selectedElement(nodeData) {
-  console.log(nodeData)
+  console.log('selectedElement')
   if (!nodeData.disabled) {
     postMessage(
       {
@@ -51,6 +51,16 @@ function selectedElement(nodeData) {
       '*'
     )
   }
+}
+
+function cancelElement () {
+  console.log('cancelElement')
+  postMessage(
+    {
+      type: 'cancelElement'
+    },
+    '*'
+  )
 }
 
 export default App;

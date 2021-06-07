@@ -4,6 +4,7 @@ chrome.runtime.onMessage.addListener(function(request) {
     self.postMessage(request)
   }
   window.addEventListener('message', msg => {
+    console.log(msg)
     chrome.tabs.query({active: true, currentWindow: true}, tabs => {
       chrome.tabs.sendMessage(tabs[0].id, {
         data: msg.data

@@ -1,16 +1,18 @@
 
 chrome.runtime.onMessage.addListener(function(request) {
   const { type, data } = request.data
-  if (type === 'selectedElement') {
-    createMask(data)
+  switch(type) {
+    case 'selectedElement':
+      createMask(data)
+      break;
+    case 'cancelElement':
+      cancelMask()
+      break;
   }
 })
 
 function createMask(data) {
-  const maskElement = document.querySelector('#mask-element')
-  if (maskElement !== null) {
-    document.body.removeChild(maskElement)
-  }
+  cancelMask()
   const div = document.createElement('div')
   Object.keys(data).map(styleKey => div.style[styleKey] = data[styleKey] + 'px')
   div.style.position = 'absolute'
@@ -18,6 +20,13 @@ function createMask(data) {
   div.style.zIndex = '9999'
   div.id = 'mask-element'
   document.body.appendChild(div)
+}
+
+function cancelMask() {
+  const maskElement = document.querySelector('#mask-element')
+  if (maskElement !== null) {
+    document.body.removeChild(maskElement)
+  }
 }
 
 function getElementTreeData(element, elementTreeData, performanceElementTimingObj) {
@@ -29,7 +38,7 @@ function getElementTreeData(element, elementTreeData, performanceElementTimingOb
     let parsePerformanceElementTiming = {}
     if ('elementtiming' in childElement.attributes) {
       nodeValue = childElement.attributes.elementtiming.nodeValue
-      argObj['isDisable'] = false
+      argObj['elementtiming'] = true
       argObj['key'] = childElement.dataset.mark
       let performanceElementTiming = performanceElementTimingObj[argObj['key']]
       if (performanceElementTiming) {
@@ -37,7 +46,6 @@ function getElementTreeData(element, elementTreeData, performanceElementTimingOb
       }
     } else {
       nodeValue = childElement.nodeName
-      // argObj['disabled'] = true
       argObj['key'] = Math.ceil(Math.random() * 100000)
     }
     argObj = Object.assign({}, argObj, parsePerformanceElementTiming, {
@@ -51,17 +59,21 @@ function getElementTreeData(element, elementTreeData, performanceElementTimingOb
   return elementTreeData
 }
 
-window.onload = function() {
-  let elementTreeData = []
-  const observer = new PerformanceObserver((list) => {
-    let performanceElementTimingObj = {}
-    list.getEntries().map(performanceTimingItem => performanceElementTimingObj[performanceTimingItem.element.dataset.mark] = performanceTimingItem)
-    chrome.runtime.sendMessage(
-      {
-        type: 'performanceTree',
-        data: getElementTreeData(document.body, elementTreeData, performanceElementTimingObj)
-      }
-    )
-  });
-  observer.observe({ entryTypes: ["element"] });
-}
+let performanceElementTimingList = []
+const observer = new PerformanceObserver((list) => {
+  let elementTree = []
+  let performanceElementTimingObj = {}
+  performanceElementTimingList = performanceElementTimingList.concat(list.getEntries())
+  performanceElementTimingList.map(performanceTimingItem => {
+    if (performanceTimingItem.element !== null) {
+      return performanceElementTimingObj[performanceTimingItem.element.dataset.mark] = performanceTimingItem
+    }
+  })
+  chrome.runtime.sendMessage(
+    {
+      type: 'performanceTree',
+      data: getElementTreeData(document.body, elementTree, performanceElementTimingObj)
+    }
+  )
+});
+observer.observe({ entryTypes: ["element"] });
